@@ -1,49 +1,45 @@
 {
-	"name": "mp-component-navigator",
-	"displayName": "MP Component Navigator",
-	"description": "",
-	"version": "0.1.2",
-	"engines": {
-		"vscode": "^1.19.0"
-	},
-	"main": "./dist/index.js",
-	"scripts": {
-		"build": "rm -rf ./dist && tsc -p ./",
-		"watch": "rm -rf ./dist && tsc -watch -p ./",
-		"lint": "eslint ./src --ext ts"
-	},
-	"devDependencies": {
-		"@types/node": "^14.17.34",
-		"@types/vscode": "^1.19.0",
-		"@typescript-eslint/eslint-plugin": "^5.5.0",
-		"@typescript-eslint/parser": "^5.5.0",
-		"eslint": "^8.3.0",
-		"typescript": "^4.5.2"
-	},
-	"publisher": "gexuewen",
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onLanguage:wxml",
-		"onLanguage:json"
-	],
-	"contributes": {
-		"languages": [
-			{
-				"id": "wxml",
-				"extensions": [
-					".wxml"
-				],
-				"aliases": [
-					"WXML"
-				]
-			}
-		]
-	},
-	"__metadata": {
-		"installedTimestamp": 1760685017457,
-		"targetPlatform": "undefined",
-		"size": 7942
-	}
+  "name": "mp-component-navigator",
+  "displayName": "MP Component Navigator",
+  "description": "",
+  "version": "0.1.2",
+  "engines": {
+    "vscode": "^1.19.0"
+  },
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "rm -rf ./dist && tsc -p ./",
+    "watch": "rm -rf ./dist && tsc -watch -p ./",
+    "lint": "eslint ./src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^18.17.17",
+    "@types/vscode": "^1.19.0",
+    "@typescript-eslint/eslint-plugin": "^7.10.0",
+    "@typescript-eslint/parser": "^7.10.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  },
+  "publisher": "gexuewen",
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:wxml",
+    "onLanguage:json"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "wxml",
+        "extensions": [
+          ".wxml"
+        ],
+        "aliases": [
+          "WXML"
+        ]
+      }
+    ]
+  }
 }

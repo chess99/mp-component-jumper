@@ -1,0 +1,11 @@
+.vscode/**
+.vscode-test/**
+.vscodeignore
+.eslintrc.js
+.eslintignore
+.gitignore
+src/**
+node_modules/**
+tsconfig.json
+yarn.lock
+package-lock.json
