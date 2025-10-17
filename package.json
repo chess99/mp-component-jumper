@@ -2,7 +2,7 @@
   "name": "mp-component-navigator",
   "displayName": "MP Component Navigator",
   "description": "",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "engines": {
     "vscode": "^1.19.0"
   },
