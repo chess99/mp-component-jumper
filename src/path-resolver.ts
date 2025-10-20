@@ -3,24 +3,32 @@ import path from "path";
 import { getAlias, getConfig } from "./config";
 import { getSrcDir } from "./utils";
 
+/**
+ * Resolves the prefix part of a component path.
+ * Handles alias resolution and absolute paths.
+ */
 const prefixResolver = (fileDir: string, componentPath: string): string => {
-  const alias = getAlias(fileDir);
-
-  for (const alia of alias) {
-    if (componentPath.startsWith(alia.name)) {
-      const resolvedPath = componentPath.replace(alia.name, alia.path);
-      return path.resolve(fileDir, resolvedPath);
+  // Handle alias paths (e.g., "@/components/...")
+  const aliases = getAlias(fileDir);
+  for (const alias of aliases) {
+    if (componentPath.startsWith(alias.name)) {
+      return componentPath.replace(alias.name, alias.path + "/");
     }
   }
 
+  // Handle absolute paths (e.g., "/components/...")
   if (componentPath.startsWith("/")) {
     const srcDir = getSrcDir(fileDir);
-    return path.resolve(srcDir, "." + componentPath);
+    return path.join(srcDir, componentPath);
   }
 
+  // Handle relative paths (e.g., "./components/...")
   return path.resolve(fileDir, componentPath);
 };
 
+/**
+ * Gets the list of file extensions to try when resolving component paths.
+ */
 const getExtList = (fileDir: string): string[] => {
   const config = getConfig(fileDir);
   return config.ext || [];
@@ -28,27 +36,44 @@ const getExtList = (fileDir: string): string[] => {
 
 type SuffixResolver = (componentPath: string) => string;
 
-const getSuffixResolvers = (fileDir: string): SuffixResolver[] =>
-  getExtList(fileDir)
-    .map((ext) => [
-      (componentPath: string) => componentPath + ext,
-      (componentPath: string) => path.resolve(componentPath, `./index${ext}`),
-    ])
-    .flat();
+/**
+ * Creates suffix resolvers for each extension.
+ * Each resolver tries both direct file and index file patterns.
+ */
+const getSuffixResolvers = (fileDir: string): SuffixResolver[] => {
+  const extensions = getExtList(fileDir);
+  const resolvers: SuffixResolver[] = [];
 
+  for (const ext of extensions) {
+    // Direct file: "component" -> "component.js"
+    resolvers.push((componentPath: string) => componentPath + ext);
+    // Index file: "component" -> "component/index.js"
+    resolvers.push((componentPath: string) =>
+      path.join(componentPath, `index${ext}`)
+    );
+  }
+
+  return resolvers;
+};
+
+/**
+ * Resolves a component path to actual file system paths.
+ * Returns all matching files found.
+ */
 export const resolveComponentPath = (
   fileDir: string,
   componentPath: string
 ): string[] => {
-  const preparedComponentPath = prefixResolver(fileDir, componentPath);
+  const basePath = prefixResolver(fileDir, componentPath);
   const suffixResolvers = getSuffixResolvers(fileDir);
-  const resolvedPaths: string[] = [];
+  const foundPaths = new Set<string>();
 
-  for (const suffixResolver of suffixResolvers) {
-    const resolvedPath = suffixResolver(preparedComponentPath);
-    if (fs.existsSync(resolvedPath)) {
-      resolvedPaths.push(resolvedPath);
+  for (const resolver of suffixResolvers) {
+    const candidatePath = resolver(basePath);
+    if (fs.existsSync(candidatePath)) {
+      foundPaths.add(candidatePath);
     }
   }
-  return [...new Set(resolvedPaths)]; // Return unique paths
+
+  return Array.from(foundPaths);
 };

@@ -8,20 +8,23 @@
 
 ## 使用方式
 
-1.  安装插件后即可零配置使用。
-2.  打开 `wxml` 或 `json` 文件, 将光标放在组件标签或路径上。
-3.  使用 VS Code 的 **跳转到定义 (Go to Definition)** 功能 (如 `F12` 或 `Cmd/Ctrl + 点击`)。
+1. 安装插件后即可零配置使用。
+2. 打开 `wxml` 或 `json` 文件, 将光标放在组件标签或路径上。
+3. 使用 VS Code 的 **跳转到定义 (Go to Definition)** 功能 (如 `F12` 或 `Cmd/Ctrl + 点击`)。
 
 ## 默认行为
 
-*   **文件类型**: 默认仅查找 `.js` 和 `.ts` 后缀的组件逻辑文件。
-*   **路径别名**: 自动识别并加载项目 `tsconfig.json` 文件中 `compilerOptions.paths` 定义的路径别名。
+* **文件类型**: 默认仅查找 `.js` 和 `.ts` 后缀的组件逻辑文件。
+* **路径别名**: 自动识别并加载项目 `tsconfig.json` 文件中 `compilerOptions.paths` 定义的路径别名。
+* **tsconfig 继承**: 完整支持 `extends` 字段，可正确解析继承的配置（如 monorepo 场景）。
+* **baseUrl 支持**: 正确处理 `compilerOptions.baseUrl`，确保路径解析准确。
 
 ## 自定义配置 (可选)
 
 如果默认行为不满足需求, 可以在项目根目录创建 `mp-component-jumper.config.js` 文件来覆盖或扩展默认配置。
 
-**示例: 添加对 `.wxml` 的支持并覆盖 `tsconfig` 中的别名**
+**配置方式 1: 基础配置**
+
 ```javascript
 // mp-component-jumper.config.js
 
@@ -35,11 +38,91 @@ module.exports = {
   alias: [
     {
       name: '@/',
-      path: 'src/custom/', // 将 @/ 指向 src/custom/ 而不是 tsconfig.json 中配置的路径
+      path: '/absolute/path/to/src/', // 使用绝对路径
     },
   ],
 };
 ```
+
+**配置方式 2: 动态配置**
+
+```javascript
+// mp-component-jumper.config.js
+const path = require('path');
+
+module.exports = {
+  ext: ['.js', '.ts'],
+  
+  // 使用函数动态计算路径 (适用于复杂项目结构)
+  alias: (fileDir) => {
+    return [
+      {
+        name: '@/',
+        path: path.resolve(fileDir, '../src/'),
+      },
+    ];
+  },
+};
+```
+
+## tsconfig.json 支持
+
+插件完整支持 `tsconfig.json` 的路径映射功能，包括：
+
+### 基础配置
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"]
+    }
+  }
+}
+```
+
+### extends 继承 (Monorepo 场景)
+
+```json
+{
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*"]
+}
+```
+
+插件会自动解析继承链，合并所有配置，无需额外设置。
+
+## 常见场景
+
+### Monorepo 项目
+
+```
+/project
+  /tsconfig.json          # 基础配置
+  /packages
+    /app1
+      /tsconfig.json      # extends: ../../tsconfig.json
+      /src
+```
+
+✅ 插件会正确解析继承的 `paths` 配置
+
+### 多 baseUrl 项目
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@utils/*": ["utils/*"]  // 相对于 src 目录
+    }
+  }
+}
+```
+
+✅ 插件会基于 `baseUrl` 正确解析路径
 
 ## 致谢
 
