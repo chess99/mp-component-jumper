@@ -2,7 +2,7 @@
   "name": "mp-component-jumper",
   "displayName": "MP Component Jumper",
   "description": "",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.19.0"
   },
@@ -24,12 +24,13 @@
     "webpack": "^5.102.1",
     "webpack-cli": "^6.0.1"
   },
-  "publisher": "chess99",
+  "publisher": "mp-kit",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/chess99/mp-component-jumper.git"
   },
+  "icon": "images/icon.png",
   "categories": [
     "Other"
   ],
