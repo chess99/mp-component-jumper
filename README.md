@@ -8,36 +8,34 @@
 
 ## 使用方式
 
-1. 在你的小程序项目根目录下创建一个配置文件 `mp-component-jumper.config.js` (可选, 但建议配置)。
-2. 打开 `wxml` 或 `json` 文件, 将光标放在组件标签或路径上。
-3. 使用 VS Code 的 **跳转到定义 (Go to Definition)** 功能。
+1.  安装插件后即可零配置使用。
+2.  打开 `wxml` 或 `json` 文件, 将光标放在组件标签或路径上。
+3.  使用 VS Code 的 **跳转到定义 (Go to Definition)** 功能 (如 `F12` 或 `Cmd/Ctrl + 点击`)。
 
-常见的触发方式有：
+## 默认行为
 
-* 按 `F12` 键。
-* 按住 `Command` (macOS) 或 `Ctrl` (Windows/Linux) 并单击。
-* 右键单击, 在菜单中选择 `跳转到定义 (Go to Definition)`。
+*   **文件类型**: 默认仅查找 `.js` 和 `.ts` 后缀的组件逻辑文件。
+*   **路径别名**: 自动识别并加载项目 `tsconfig.json` 文件中 `compilerOptions.paths` 定义的路径别名。
 
-## 配置文件示例
+## 自定义配置 (可选)
 
-在你的项目根目录创建 `mp-component-jumper.config.js` 文件:
+如果默认行为不满足需求, 可以在项目根目录创建 `mp-component-jumper.config.js` 文件来覆盖或扩展默认配置。
 
+**示例: 添加对 `.wxml` 的支持并覆盖 `tsconfig` 中的别名**
 ```javascript
 // mp-component-jumper.config.js
 
 module.exports = {
-  // 配置组件源文件的后缀名列表。
-  // "跳转到定义" 时, 插件会按此列表顺序查找所有存在的对应文件, 并提供跳转选项。
-  // 例如, 跳转 'custom-component', 插件会寻找 'custom-component.wxml', 'custom-component.js' 等。
-  ext: ['.wxml', '.js', '.ts', '.wxss', '.json'],
+  // 默认值是 ['.js', '.ts']
+  // 如果希望跳转时也能找到视图文件, 可以像下面这样添加:
+  ext: ['.js', '.ts', '.wxml', '.wxss', '.json'],
 
-  // 配置路径别名, 用于解析绝对路径
-  // 建议使用 '@/' 这种带斜杠的格式, 避免与 npm scoped packages (如 @vant/weapp) 冲突
-  // 例如: `usingComponents` 中配置的路径是 `@/components/list`
+  // 插件会自动读取 tsconfig.json 的 paths 配置。
+  // 此处的配置项会优先使用, 并覆盖 tsconfig.json 中的同名配置。
   alias: [
     {
       name: '@/',
-      path: 'src/', // @/ 将会映射到 src/ 目录
+      path: 'src/custom/', // 将 @/ 指向 src/custom/ 而不是 tsconfig.json 中配置的路径
     },
   ],
 };

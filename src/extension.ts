@@ -4,13 +4,10 @@ import * as vscode from "vscode";
 import { resolve, dirname, extname } from "path";
 import { existsSync, readFileSync } from "fs";
 import { Alias, Config } from "./interface";
+import { DEFAULT_CONFIG } from "./defaults";
 
 let configCache: Config | null = null;
 let aliasCache: Alias[] | null = null;
-
-const DEFAULT_CONFIG: Config = {
-  ext: [".wxml", ".js", ".ts", ".wxss", ".json"],
-};
 
 export const activate = (context: vscode.ExtensionContext) => {
   context.subscriptions.push(
@@ -30,9 +27,69 @@ const _getConfig = (dir: string, name: string): Partial<Config> => {
   }
   const filePath = resolve(dir, name);
   if (existsSync(filePath)) {
-    return require(filePath);
+    try {
+      return require(filePath);
+    } catch (e) {
+      console.error(`Error loading config file: ${filePath}`, e);
+      return {};
+    }
   }
   return _getConfig(dirname(dir), name);
+};
+
+const _findAndReadTsconfig = (dir: string): any => {
+  if (!dir || dir === "/") {
+    return null;
+  }
+  const filePath = resolve(dir, "tsconfig.json");
+  if (existsSync(filePath)) {
+    try {
+      const content = readFileSync(filePath).toString();
+      // Strip comments before parsing
+      const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+      return JSON.parse(jsonContent);
+    } catch (e) {
+      console.error(`Error parsing tsconfig.json: ${filePath}`, e);
+      return null;
+    }
+  }
+  return _findAndReadTsconfig(dirname(dir));
+};
+
+const _convertTsconfigPathsToAlias = (
+  tsconfig: any,
+  tsconfigDir: string
+): Alias[] => {
+  if (!tsconfig?.compilerOptions?.paths) {
+    return [];
+  }
+
+  const paths = tsconfig.compilerOptions.paths;
+  const alias: Alias[] = [];
+
+  for (const key in paths) {
+    if (key.endsWith("/*")) {
+      const name = key.replace("/*", "/");
+      const pathValue = paths[key][0];
+      if (pathValue && pathValue.endsWith("/*")) {
+        const resolvedPath = resolve(
+          tsconfigDir,
+          pathValue.replace("/*", "/")
+        );
+        alias.push({ name, path: resolvedPath });
+      }
+    }
+  }
+  return alias;
+};
+
+const _getTsconfigAlias = (dir: string): Alias[] => {
+	const tsconfig = _findAndReadTsconfig(dir);
+	if (tsconfig) {
+		const tsconfigDir = dirname(_findAndReadTsconfig.toString());
+		return _convertTsconfigPathsToAlias(tsconfig, tsconfigDir);
+	}
+	return [];
 };
 
 const getConfig = (dir: string): Config => {
@@ -60,14 +117,28 @@ const getAlias = (fileDir: string): Alias[] => {
   if (aliasCache && aliasCache.length !== 0) {
     return aliasCache;
   }
+
+  const tsconfigAlias = _getTsconfigAlias(fileDir);
   const config = getConfig(fileDir);
-  let alias = config.alias;
-  if (typeof alias === "function") {
-    alias = alias(fileDir);
+
+  let userAlias = config.alias;
+  if (typeof userAlias === "function") {
+    userAlias = userAlias(fileDir);
   }
-  alias = alias || [];
-  aliasCache = alias;
-  return alias;
+  userAlias = userAlias || [];
+
+  // User-defined aliases take precedence over tsconfig aliases
+  const finalAlias = [...userAlias];
+  const userAliasNames = new Set(userAlias.map(a => a.name));
+
+  for (const alias of tsconfigAlias) {
+    if (!userAliasNames.has(alias.name)) {
+      finalAlias.push(alias);
+    }
+  }
+  
+  aliasCache = finalAlias;
+  return aliasCache;
 };
 
 const getTagName = (
@@ -84,40 +155,41 @@ const getTagName = (
   } else if (extname(filePath) === ".json") {
     invalidCharacter = [" ", '"', ":"];
   }
-  while (!invalidCharacter.includes(line[r]) && r < line.length) {
+  while (r < line.length && !invalidCharacter.includes(line[r])) {
     r++;
   }
-  while (!invalidCharacter.includes(line[l]) && l > -1) {
+  while (l > -1 && !invalidCharacter.includes(line[l])) {
     l--;
   }
-  let result = line.substring(l, r).trim();
-  for (let i = 0; i < invalidCharacter.length; i++) {
-    const character = invalidCharacter[i];
-    result = result.replace(new RegExp(character, "g"), "");
-  }
+  let result = line.substring(l + 1, r).trim();
   return result;
 };
 
-const getSrcDir = (fileDir: string): string =>
-  fileDir.substring(0, fileDir.indexOf("src") + 3);
+const getSrcDir = (fileDir: string): string => {
+  const srcIndex = fileDir.indexOf("/src/");
+  if (srcIndex !== -1) {
+    return fileDir.substring(0, srcIndex + 4);
+  }
+  // Fallback for projects that might not have a src dir
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fileDir));
+  return workspaceFolder ? workspaceFolder.uri.fsPath : dirname(fileDir);
+};
 
 const prefixResolver = (fileDir: string, componentPath: string): string => {
   let resolvedPath = componentPath;
-  if (resolvedPath.startsWith("@/")) {
-    resolvedPath = resolvedPath.replace("@/", "/");
-  }
-  if (resolvedPath.startsWith("/")) {
-    resolvedPath = resolve(getSrcDir(fileDir), "./" + resolvedPath);
-  }
-  if (resolvedPath.startsWith("@")) {
-    const alias = getAlias(fileDir);
-    for (let i = 0; i < alias.length; i++) {
-      const alia = alias[i];
-      if (resolvedPath.startsWith(alia.name)) {
-        resolvedPath = resolvedPath.replace(alia.name, alia.path);
-      }
+  const alias = getAlias(fileDir);
+
+  for (const alia of alias) {
+    if (resolvedPath.startsWith(alia.name)) {
+      return resolve(alia.path, resolvedPath.substring(alia.name.length));
     }
   }
+
+  if (resolvedPath.startsWith("/")) {
+    const srcDir = getSrcDir(fileDir);
+    return resolve(srcDir, "." + resolvedPath);
+  }
+  
   return resolve(fileDir, resolvedPath);
 };
 
@@ -126,13 +198,13 @@ const getExtList = (fileDir: string): string[] => {
   return config.ext || [];
 };
 
-type SuffixResolver = (fileDir: string, componentPath: string) => string;
+type SuffixResolver = (componentPath: string) => string;
 
 const getSuffixResolvers = (fileDir: string): SuffixResolver[] =>
   getExtList(fileDir)
     .map((ext) => [
-      (_: string, componentPath: string) => resolve(componentPath + ext),
-      (_: string, componentPath: string) => resolve(componentPath, `./index${ext}`),
+      (componentPath: string) => componentPath + ext,
+      (componentPath: string) => resolve(componentPath, `./index${ext}`),
     ])
     .flat();
 
@@ -143,14 +215,14 @@ const resolveComponentPath = (
   const resolvedPaths: string[] = [];
   const preparedComponentPath = prefixResolver(fileDir, componentPath);
   const suffixResolvers = getSuffixResolvers(fileDir);
-  for (let i = 0; i < suffixResolvers.length; i++) {
-    const suffixResolver = suffixResolvers[i];
-    const resolvedPath = suffixResolver(fileDir, preparedComponentPath);
-    if (resolvedPath && existsSync(resolvedPath)) {
+
+  for (const suffixResolver of suffixResolvers) {
+    const resolvedPath = suffixResolver(preparedComponentPath);
+    if (existsSync(resolvedPath)) {
       resolvedPaths.push(resolvedPath);
     }
   }
-  return resolvedPaths;
+  return [...new Set(resolvedPaths)]; // Return unique paths
 };
 
 const provideDefinition = (
