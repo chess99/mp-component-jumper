@@ -39,15 +39,18 @@ const getConfig = (dir: string): Config => {
   if (configCache && Object.keys(configCache).length !== 0) {
     return configCache;
   }
-  const userConfig = _getConfig(dir, "mp-component-navigator.config.js");
-  const privateConfig = _getConfig(
-    dir,
-    "mp-component-navigator.private.config.js"
-  );
+
+  // Prefer the new config file name: mp-component-jumper.config.js
+  let userConfig = _getConfig(dir, "mp-component-jumper.config.js");
+
+  // Fallback to the old config file name for backward compatibility
+  if (Object.keys(userConfig).length === 0) {
+    userConfig = _getConfig(dir, "mp-component-navigator.config.js");
+  }
+
   const config: Config = {
     ...DEFAULT_CONFIG,
     ...userConfig,
-    ...privateConfig,
   };
   configCache = config;
   return config;

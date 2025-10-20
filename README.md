@@ -8,7 +8,7 @@
 
 ## 使用方式
 
-1. 在你的小程序项目根目录下创建一个配置文件 `mp-component-navigator.config.js` (可选, 但建议配置)。
+1. 在你的小程序项目根目录下创建一个配置文件 `mp-component-jumper.config.js` (可选, 但建议配置)。
 2. 打开 `wxml` 或 `json` 文件, 将光标放在组件标签或路径上。
 3. 使用 VS Code 的 **跳转到定义 (Go to Definition)** 功能。
 
@@ -20,10 +20,10 @@
 
 ## 配置文件示例
 
-在你的项目根目录创建 `mp-component-navigator.config.js` 文件:
+在你的项目根目录创建 `mp-component-jumper.config.js` 文件:
 
 ```javascript
-// mp-component-navigator.config.js
+// mp-component-jumper.config.js
 
 module.exports = {
   // 配置组件源文件的后缀名列表。
