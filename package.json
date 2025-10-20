@@ -9,8 +9,8 @@
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "rm -rf ./dist && tsc -p ./",
-    "watch": "rm -rf ./dist && tsc -watch -p ./",
+    "build": "rm -rf ./dist && webpack --mode production",
+    "watch": "rm -rf ./dist && webpack --mode development --watch",
     "lint": "eslint ./src --ext ts"
   },
   "devDependencies": {
@@ -19,7 +19,10 @@
     "@typescript-eslint/eslint-plugin": "^7.10.0",
     "@typescript-eslint/parser": "^7.10.0",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.5"
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.4.5",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
   },
   "publisher": "chess99",
   "license": "MIT",
