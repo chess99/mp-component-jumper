@@ -1,11 +1,17 @@
+# Ignore dev dependencies
+node_modules/**
+
+# Ignore source code, we only need the compiled output
+src/**
+
+# Ignore config and dev-related folders/files
 .vscode/**
-.vscode-test/**
-.vscodeignore
+tsconfig.json
+webpack.config.js
 .eslintrc.js
 .eslintignore
 .gitignore
-src/**
-node_modules/**
-tsconfig.json
-yarn.lock
-package-lock.json
+
+# Ignore build artifacts and source maps
+*.vsix
+**/*.map
